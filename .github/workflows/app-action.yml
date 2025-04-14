@@ -1,0 +1,69 @@
+name: GitHub App Demo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  call-api:
+    runs-on: ubuntu-latest
+    env:
+      APP_ID: ${{ secrets.APP_ID }}
+      INSTALLATION_ID: ${{ secrets.APP_INSTALLATION_ID }}
+      PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+    steps:
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm install axios jsonwebtoken
+
+      - name: Generate JWT and get token
+        id: generate-token
+        run: |
+          echo "$APP_PRIVATE_KEY" > private-key.pem
+
+          node <<'EOF'
+          const jwt = require('jsonwebtoken');
+          const fs = require('fs');
+          const axios = require('axios');
+
+          // Load the private key
+          const privateKey = fs.readFileSync(private-key.pem, 'utf8');
+
+          // Create a JWT
+          const payload = {
+            iss: process.env.APP_ID,
+            iat: Math.floor(Date.now() / 1000),
+            exp: Math.floor(Date.now() / 1000) + (10 * 60), // 10 minutes expiration
+          };
+          const token = jwt.sign(payload, privateKey, { algorithm: 'RS256' });
+
+          // Get the installation access token
+          async function getAccessToken() {
+            const response = await axios.post(
+              `https://api.github.com/app/installations/${INSTALLATION_ID}/access_tokens`,
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  Accept: 'application/vnd.github.v3+json',
+                },
+              }
+            );
+            console.log(`::set-output name=GITHUB_APP_TOKEN::${response.data.token}`);
+          }
+
+          getAccessToken();
+          EOF
+
+      - name: Create Issue using Gihtub App token
+        run: |
+          curl -X POST \
+            -H "Authorization: token $GITHUB_APP_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/issues \
+            -d '{"title":"Hello from GitHub App!!","body":"This issue was created using a GitHub App token."}'
+        env:
+          GITHUB_APP_TOKEN: ${{ steps.generate-token.outputs.GITHUB_APP_TOKEN }}
