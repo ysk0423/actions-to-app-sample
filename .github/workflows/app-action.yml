@@ -30,7 +30,7 @@ jobs:
           const axios = require('axios');
 
           // Load the private key
-          const privateKey = fs.readFileSync(private-key.pem, 'utf8');
+          const privateKey = fs.readFileSync('private-key.pem', 'utf8');
 
           // Create a JWT
           const payload = {
