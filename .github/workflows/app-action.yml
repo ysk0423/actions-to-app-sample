@@ -31,6 +31,7 @@ jobs:
 
           // Load the private key
           const privateKey = fs.readFileSync('private-key.pem', 'utf8');
+          console.log('PRIVATE KEY LENGTH:', privateKey.length)
 
           // Create a JWT
           const payload = {
