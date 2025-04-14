@@ -8,8 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       APP_ID: ${{ secrets.APP_ID }}
-      INSTALLATION_ID: ${{ secrets.APP_INSTALLATION_ID }}
-      PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      APP_INSTALLATION_ID: ${{ secrets.APP_INSTALLATION_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
     steps:
       - name: Set up Node
         uses: actions/setup-node@v3
@@ -31,7 +31,6 @@ jobs:
 
           // Load the private key
           const privateKey = fs.readFileSync('private-key.pem', 'utf8');
-          console.log('PRIVATE KEY LENGTH:', privateKey.length)
 
           // Create a JWT
           const payload = {
@@ -44,7 +43,7 @@ jobs:
           // Get the installation access token
           async function getAccessToken() {
             const response = await axios.post(
-              `https://api.github.com/app/installations/${INSTALLATION_ID}/access_tokens`,
+              `https://api.github.com/app/installations/${APP_INSTALLATION_ID}/access_tokens`,
               {},
               {
                 headers: {
