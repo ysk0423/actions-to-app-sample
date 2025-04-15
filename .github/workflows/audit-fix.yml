@@ -45,6 +45,8 @@ jobs:
           # 抜き出したパッケージを1つずつアップグレード
           echo "$vulnerable" | jq -r '.[]' | while read -r pkg; do
             yarn upgrade "$pkg"
+            echo "DEBUG: git diff --name-only after upgrading $pkg:"
+            git diff --name-only
           done
 
           if [ -n "$(git status --porcelain)" ]; then
