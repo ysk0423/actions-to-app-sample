@@ -43,8 +43,9 @@ jobs:
           fi
 
           # 抜き出したパッケージを1つずつアップグレード
+          # 検証なのでとりあえずlatestを指定
           echo "$vulnerable" | jq -r '.[]' | while read -r pkg; do
-            yarn upgrade "$pkg"
+            yarn add "$pkg@latest"
             echo "DEBUG: git diff --name-only after upgrading $pkg:"
             git diff --name-only
           done
