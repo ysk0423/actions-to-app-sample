@@ -21,11 +21,19 @@ jobs:
       - name: Run audit fix
         run: |
           set -euxo pipefail
-          audit_output=$(yarn audit --json || true)
 
-          echo "$audit_output" > audit.json
-          vulnerable=$(jq '[select(.type == "auditAdvisory") | .data.advisory.module_name] | unique' audit.json)
-
+           # 脆弱性情報を取得してCVE付きのものだけ抽出
+           # -sでJSON Linesを1つの配列として受け取る
+          vulnerable=$(yarn audit --json \
+            | grep '"type":"auditAdvisory"' \
+            | jq -s '
+              [
+                .[]
+                | select(.data.advisory.cves | length > 0)
+                | .data.advisory.module_name
+              ] | unique
+            ')
+            
           echo "Detected vulnerable packages:"
           echo "$vulnerable"
 
