@@ -1,0 +1,55 @@
+name: Auto Audit Fix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  audit-fix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run audit fix
+        run: |
+          set -euxo pipefail
+
+           # 脆弱性情報を取得してCVE付きのものだけ抽出
+           # -sでJSON Linesを1つの配列として受け取る
+          vulnerable=$(yarn audit --json \
+            | grep '"type":"auditAdvisory"' \
+            | jq -s '
+              [
+                .[]
+                | select(.data.advisory.cves | length > 0)
+                | .data.advisory.module_name
+              ] | unique
+            ')
+            
+          echo "Detected vulnerable packages:"
+          echo "$vulnerable"
+
+          # 抜き出したパッケージを1つずつアップグレード
+          echo "$vulnerable" | jq -r '.[]' | while read -r pkg; do
+            yarn upgrade "$pkg"
+          done
+
+          if [ -n "$(git status --porcelain)" ]; then
+            branch="fix/yarn-audit-$(date +%Y%m%d%H%M%S)"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git checkout -b "$branch"
+            git add .
+            git commit -m "chore: auto upgrade vulnerable packages"
+            git push origin "$branch"
+          else
+            echo "No changes to commit"
+          fi
