@@ -32,10 +32,15 @@ jobs:
                 | select(.data.advisory.cves | length > 0)
                 | .data.advisory.module_name
               ] | unique
-            ')
-            
+            ' || echo "[]")
+
           echo "Detected vulnerable packages:"
           echo "$vulnerable"
+
+          if [ "$vulnerable" = "[]" ]; then
+            echo "No vulnerable packages detected. Exiting gracefully."
+            exit 0
+          fi
 
           # 抜き出したパッケージを1つずつアップグレード
           echo "$vulnerable" | jq -r '.[]' | while read -r pkg; do
